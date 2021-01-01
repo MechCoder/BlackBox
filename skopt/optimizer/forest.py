@@ -8,7 +8,7 @@ from ..utils import cook_estimator
 
 
 def forest_minimize(func, dimensions, base_estimator="ET", n_calls=100,
-                    n_random_starts=None, n_initial_points=10, acq_func="EI",
+                    n_random_starts=None, n_initial_points=10, acq_func="LCB",
                     initial_point_generator="random",
                     x0=None, y0=None, random_state=None, verbose=False,
                     callback=None, n_points=10000, xi=0.01, kappa=1.96,

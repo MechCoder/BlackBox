@@ -25,28 +25,22 @@ from matplotlib.ticker import MaxNLocator, FuncFormatter  # noqa: E402
 
 def plot_convergence(*args, **kwargs):
     """Plot one or several convergence traces.
-
     Parameters
     ----------
     args[i] :  `OptimizeResult`, list of `OptimizeResult`, or tuple
         The result(s) for which to plot the convergence trace.
-
         - if `OptimizeResult`, then draw the corresponding single trace;
         - if list of `OptimizeResult`, then draw the corresponding convergence
           traces in transparency, along with the average convergence trace;
         - if tuple, then `args[i][0]` should be a string label and `args[i][1]`
           an `OptimizeResult` or a list of `OptimizeResult`.
-
     ax : `Axes`, optional
         The matplotlib axes on which to draw the plot, or `None` to create
         a new one.
-
     true_minimum : float, optional
         The true minimum value of the function, if known.
-
     yscale : None or string, optional
         The scale for the y-axis.
-
     Returns
     -------
     ax : `Axes`
@@ -109,47 +103,34 @@ def plot_convergence(*args, **kwargs):
 def plot_gaussian_process(res, **kwargs):
     """Plots the optimization results and the gaussian process
     for 1-D objective functions.
-
     Parameters
     ----------
     res :  `OptimizeResult`
         The result for which to plot the gaussian process.
-
     ax : `Axes`, optional
         The matplotlib axes on which to draw the plot, or `None` to create
         a new one.
-
     n_calls : int, default: -1
         Can be used to evaluate the model at call `n_calls`.
-
     objective : func, default: None
         Defines the true objective function. Must have one input parameter.
-
     n_points : int, default: 1000
         Number of data points used to create the plots
-
     noise_level : float, default: 0
         Sets the estimated noise level
-
     show_legend : boolean, default: True
         When True, a legend is plotted.
-
     show_title : boolean, default: True
         When True, a title containing the found minimum value
         is shown
-
     show_acq_func : boolean, default: False
         When True, the acquisition function is plotted
-
     show_next_point : boolean, default: False
         When True, the next evaluated point is plotted
-
     show_observations : boolean, default: True
         When True, observations are plotted as dots.
-
     show_mu : boolean, default: True
         When True, the predicted model is shown.
-
     Returns
     -------
     ax : `Axes`
@@ -269,29 +250,23 @@ def plot_gaussian_process(res, **kwargs):
 
 def plot_regret(*args, **kwargs):
     """Plot one or several cumulative regret traces.
-
     Parameters
     ----------
     args[i] : `OptimizeResult`, list of `OptimizeResult`, or tuple
         The result(s) for which to plot the cumulative regret trace.
-
         - if `OptimizeResult`, then draw the corresponding single trace;
         - if list of `OptimizeResult`, then draw the corresponding cumulative
             regret traces in transparency, along with the average cumulative
             regret trace;
         - if tuple, then `args[i][0]` should be a string label and `args[i][1]`
           an `OptimizeResult` or a list of `OptimizeResult`.
-
     ax : Axes`, optional
         The matplotlib axes on which to draw the plot, or `None` to create
         a new one.
-
     true_minimum : float, optional
         The true minimum value of the function, if known.
-
     yscale : None or string, optional
         The scale for the y-axis.
-
     Returns
     -------
     ax : `Axes`
@@ -458,70 +433,54 @@ def partial_dependence(space, model, i, j=None, sample_points=None,
                        n_samples=250, n_points=40, x_eval=None):
     """Calculate the partial dependence for dimensions `i` and `j` with
     respect to the objective value, as approximated by `model`.
-
     The partial dependence plot shows how the value of the dimensions
     `i` and `j` influence the `model` predictions after "averaging out"
     the influence of all other dimensions.
-
     When `x_eval` is not `None`, the given values are used instead of
     random samples. In this case, `n_samples` will be ignored.
-
     Parameters
     ----------
     space : `Space`
         The parameter space over which the minimization was performed.
-
     model
         Surrogate model for the objective function.
-
     i : int
         The first dimension for which to calculate the partial dependence.
-
     j : int, default=None
         The second dimension for which to calculate the partial dependence.
         To calculate the 1D partial dependence on `i` alone set `j=None`.
-
     sample_points : np.array, shape=(n_points, n_dims), default=None
         Only used when `x_eval=None`, i.e in case partial dependence should
         be calculated.
         Randomly sampled and transformed points to use when averaging
         the model function at each of the `n_points` when using partial
         dependence.
-
     n_samples : int, default=100
         Number of random samples to use for averaging the model function
         at each of the `n_points` when using partial dependence. Only used
         when `sample_points=None` and `x_eval=None`.
-
     n_points : int, default=40
         Number of points at which to evaluate the partial dependence
         along each dimension `i` and `j`.
-
     x_eval : list, default=None
         `x_eval` is a list of parameter values or None. In case `x_eval`
         is not None, the parsed dependence will be calculated using these
         values.
         Otherwise, random selected samples will be used.
-
     Returns
     -------
     For 1D partial dependence:
-
     xi : np.array
         The points at which the partial dependence was evaluated.
-
     yi : np.array
         The value of the model at each point `xi`.
-
     For 2D partial dependence:
-
     xi : np.array, shape=n_points
         The points at which the partial dependence was evaluated.
     yi : np.array, shape=n_points
         The points at which the partial dependence was evaluated.
     zi : np.array, shape=(n_points, n_points)
         The value of the model at each point `(xi, yi)`.
-
     For Categorical variables, the `xi` (and `yi` for 2D) returned are
     the indices of the variable in `Dimension.categories`.
     """
@@ -542,29 +501,23 @@ def partial_dependence(space, model, i, j=None, sample_points=None,
 def plot_objective(result, levels=10, n_points=40, n_samples=250, size=2,
                    zscale='linear', dimensions=None, sample_source='random',
                    minimum='result', n_minimum_search=None, plot_dims=None,
-                   show_points=True, cmap='viridis_r'):
+                   ax=None, show_points=True, cmap='viridis_r'):
     """Plot a 2-d matrix with so-called Partial Dependence plots
     of the objective function. This shows the influence of each
     search-space dimension on the objective function.
-
     This uses the last fitted model for estimating the objective function.
-
     The diagonal shows the effect of a single dimension on the
     objective function, while the plots below the diagonal show
     the effect on the objective function when varying two dimensions.
-
     The Partial Dependence is calculated by averaging the objective value
     for a number of random samples in the search-space,
     while keeping one or two dimensions fixed at regular intervals. This
     averages out the effect of varying the other dimensions and shows
     the influence of one or two dimensions on the objective function.
-
     Also shown are small black dots for the points that were sampled
     during optimization.
-
     A red star indicates per default the best observed minimum, but
     this can be changed by changing argument ´minimum´.
-
     .. note::
           The Partial Dependence plot is only an estimation of the surrogate
           model which in turn is only an estimation of the true objective
@@ -583,54 +536,41 @@ def plot_objective(result, levels=10, n_points=40, n_samples=250, size=2,
           plot,
           we further need to map those dimensions to only 2-dimensions using
           the Partial Dependence, which also causes distortions in the plots.
-
     Parameters
     ----------
     result : `OptimizeResult`
         The optimization results from calling e.g. `gp_minimize()`.
-
     levels : int, default=10
         Number of levels to draw on the contour plot, passed directly
         to `plt.contourf()`.
-
     n_points : int, default=40
         Number of points at which to evaluate the partial dependence
         along each dimension.
-
     n_samples : int, default=250
         Number of samples to use for averaging the model function
         at each of the `n_points` when `sample_method` is set to 'random'.
-
     size : float, default=2
         Height (in inches) of each facet.
-
     zscale : str, default='linear'
         Scale to use for the z axis of the contour plots. Either 'linear'
         or 'log'.
-
     dimensions : list of str, default=None
         Labels of the dimension
         variables. `None` defaults to `space.dimensions[i].name`, or
         if also `None` to `['X_0', 'X_1', ..]`.
-
     plot_dims : list of str and int, default=None
         List of dimension names or dimension indices from the
         search-space dimensions to be included in the plot.
         If `None` then use all dimensions except constant ones
         from the search-space.
-
     sample_source : str or list of floats, default='random'
         Defines to samples generation to use for averaging the model function
         at each of the `n_points`.
-
         A partial dependence plot is only generated, when `sample_source`
         is set to 'random' and `n_samples` is sufficient.
-
         `sample_source` can also be a list of
         floats, which is then used for averaging.
-
         Valid strings:
-
         - 'random' - `n_samples` random samples will used
         - 'result' - Use only the best observed parameters
         - 'expected_minimum' - Parameters that gives the best
@@ -639,11 +579,9 @@ def plot_objective(result, levels=10, n_points=40, n_samples=250, size=2,
         - 'expected_minimum_random' - Parameters that gives the
           best minimum when using naive random sampling.
           Works with categorical values.
-
     minimum : str or list of floats, default = 'result'
         Defines the values for the red points in the plots.
         Valid strings:
-
         - 'result' - Use best observed parameters
         - 'expected_minimum' - Parameters that gives the best
           minimum Calculated using scipy's minimize method.
@@ -651,27 +589,22 @@ def plot_objective(result, levels=10, n_points=40, n_samples=250, size=2,
         - 'expected_minimum_random' - Parameters that gives the
           best minimum when using naive random sampling.
           Works with categorical values
-
     n_minimum_search : int, default = None
         Determines how many points should be evaluated
         to find the minimum when using 'expected_minimum' or
         'expected_minimum_random'. Parameter is used when
         `sample_source` and/or `minimum` is set to
         'expected_minimum' or 'expected_minimum_random'.
-
     show_points: bool, default = True
         Choose whether to show evaluated points in the
         contour plots.
-
     cmap: str or Colormap, default = 'viridis_r'
         Color map for contour plots. Passed directly to
         `plt.contourf()`
-
     Returns
     -------
     ax : `Matplotlib.Axes`
         A 2-d matrix of Axes-objects with the sub-plots.
-
     """
     # Here we define the values for which to plot the red dot (2d plot) and
     # the red dotted line (1d plot).
@@ -711,8 +644,13 @@ def plot_objective(result, levels=10, n_points=40, n_samples=250, size=2,
         raise ValueError("Valid values for zscale are 'linear' and 'log',"
                          " not '%s'." % zscale)
 
-    fig, ax = plt.subplots(n_dims, n_dims,
-                           figsize=(size * n_dims, size * n_dims))
+    # Handling figure and axis
+    if ax is None:
+        fig, ax = plt.subplots(space.n_dims, space.n_dims,
+                               figsize=(size * space.n_dims,
+                                        size * space.n_dims))
+    else:
+        fig = plt.gcf()
 
     fig.subplots_adjust(left=0.05, right=0.95, bottom=0.05, top=0.95,
                         hspace=0.1, wspace=0.1)
@@ -758,42 +696,32 @@ def plot_objective(result, levels=10, n_points=40, n_samples=250, size=2,
 def plot_evaluations(result, bins=20, dimensions=None,
                      plot_dims=None):
     """Visualize the order in which points were sampled during optimization.
-
     This creates a 2-d matrix plot where the diagonal plots are histograms
     that show the distribution of samples for each search-space dimension.
-
     The plots below the diagonal are scatter-plots of the samples for
     all combinations of search-space dimensions.
-
     The order in which samples
     were evaluated is encoded in each point's color.
-
     A red star shows the best found parameters.
-
     Parameters
     ----------
     result : `OptimizeResult`
         The optimization results from calling e.g. `gp_minimize()`.
-
     bins : int, bins=20
         Number of bins to use for histograms on the diagonal.
-
     dimensions : list of str, default=None
         Labels of the dimension
         variables. `None` defaults to `space.dimensions[i].name`, or
         if also `None` to `['X_0', 'X_1', ..]`.
-
     plot_dims : list of str and int, default=None
         List of dimension names or dimension indices from the
         search-space dimensions to be included in the plot.
         If `None` then use all dimensions except constant ones
         from the search-space.
-
     Returns
     -------
     ax : `Matplotlib.Axes`
         A 2-d matrix of Axes-objects with the sub-plots.
-
     """
     space = result.space
     # Convert categoricals to integers, so we can ensure consistent ordering.
@@ -861,17 +789,14 @@ def _get_ylim_diagonal(ax):
     """Get the min / max of the ylim for all diagonal plots.
     This is used in _adjust_fig() so the ylim is the same
     for all diagonal plots.
-
     Parameters
     ----------
     ax : `Matplotlib.Axes`
         2-dimensional matrix with Matplotlib Axes objects.
-
     Returns
     -------
     ylim_diagonal : tuple(int)
         The common min and max ylim for the diagonal plots.
-
     """
 
     # Number of search-space dimensions used in this plot.
@@ -897,43 +822,33 @@ def partial_dependence_1D(space, model, i, samples,
                           n_points=40):
     """
     Calculate the partial dependence for a single dimension.
-
     This uses the given model to calculate the average objective value
     for all the samples, where the given dimension is fixed at
     regular intervals between its bounds.
-
     This shows how the given dimension affects the objective value
     when the influence of all other dimensions are averaged out.
-
     Parameters
     ----------
     space : `Space`
         The parameter space over which the minimization was performed.
-
     model
         Surrogate model for the objective function.
-
     i : int
         The dimension for which to calculate the partial dependence.
-
     samples : np.array, shape=(n_points, n_dims)
         Randomly sampled and transformed points to use when averaging
         the model function at each of the `n_points` when using partial
         dependence.
-
     n_points : int, default=40
         Number of points at which to evaluate the partial dependence
         along each dimension `i`.
-
     Returns
     -------
     xi : np.array
         The points at which the partial dependence was evaluated.
-
     yi : np.array
         The average value of the modelled objective function at
         each point `xi`.
-
     """
     # The idea is to step through one dimension, evaluating the model with
     # that dimension fixed and averaging either over random values or over
@@ -975,45 +890,34 @@ def partial_dependence_2D(space, model, i, j, samples,
                           n_points=40):
     """
     Calculate the partial dependence for two dimensions in the search-space.
-
     This uses the given model to calculate the average objective value
     for all the samples, where the given dimensions are fixed at
     regular intervals between their bounds.
-
     This shows how the given dimensions affect the objective value
     when the influence of all other dimensions are averaged out.
-
     Parameters
     ----------
     space : `Space`
         The parameter space over which the minimization was performed.
-
     model
         Surrogate model for the objective function.
-
     i : int
         The first dimension for which to calculate the partial dependence.
-
     j : int
         The second dimension for which to calculate the partial dependence.
-
     samples : np.array, shape=(n_points, n_dims)
         Randomly sampled and transformed points to use when averaging
         the model function at each of the `n_points` when using partial
         dependence.
-
     n_points : int, default=40
         Number of points at which to evaluate the partial dependence
         along each dimension `i` and `j`.
-
     Returns
     -------
     xi : np.array, shape=n_points
         The points at which the partial dependence was evaluated.
-
     yi : np.array, shape=n_points
         The points at which the partial dependence was evaluated.
-
     zi : np.array, shape=(n_points, n_points)
         The average value of the objective function at each point `(xi, yi)`.
     """
@@ -1064,39 +968,29 @@ def plot_objective_2D(result, dimension_identifier1, dimension_identifier2,
     contour-plot of the last fitted model of the search-space,
     overlaid with all the samples from the optimization results,
     for the two given dimensions of the search-space.
-
     This is similar to `plot_objective()` but only for 2 dimensions
     whose doc-string also has a more extensive explanation.
-
     Parameters
     ----------
     result : `OptimizeResult`
         The optimization results e.g. from calling `gp_minimize()`.
-
     dimension_identifier1 : str or int
         Name or index of a dimension in the search-space.
-
     dimension_identifier2 : str or int
         Name or index of a dimension in the search-space.
-
     n_samples : int, default=250
         Number of random samples used for estimating the contour-plot
         of the objective function.
-
     n_points : int, default=40
         Number of points along each dimension where the partial dependence
         is evaluated when generating the contour-plots.
-
     levels : int, default=10
         Number of levels to draw on the contour plot.
-
     zscale : str, default='linear'
         Scale to use for the z axis of the contour plots.
         Either 'log' or linear for all other choices.
-
     ax : `Matplotlib.Axes`, default: None
         When set, everything is plotted inside this axis.
-
     Returns
     -------
     ax : `Matplotlib.Axes`
@@ -1177,22 +1071,17 @@ def plot_histogram(result, dimension_identifier, bins=20, rotate_labels=0,
     Create and return a Matplotlib figure with a histogram
     of the samples from the optimization results,
     for a given dimension of the search-space.
-
     Parameters
     ----------
     result : `OptimizeResult`
         The optimization results e.g. from calling `gp_minimize()`.
-
     dimension_identifier : str or int
         Name or index of a dimension in the search-space.
-
     bins : int, bins=20
         Number of bins in the histogram.
-
     rotate_labels : int, rotate_labels=0
         Degree to rotate category-names on the x-axis.
         Only used for Categorical dimensions.
-
     Returns
     -------
     ax : `Matplotlib.Axes`
@@ -1264,17 +1153,14 @@ def plot_histogram(result, dimension_identifier, bins=20, rotate_labels=0,
 def _map_categories(space, points, minimum):
     """
     Map categorical values to integers in a set of points.
-
     Returns
     -------
     mapped_points : np.array, shape=points.shape
         A copy of `points` with categoricals replaced with their indices in
         the corresponding `Dimension`.
-
     mapped_minimum : np.array, shape (space.n_dims,)
         A copy of `minimum` with categoricals replaced with their indices in
         the corresponding `Dimension`.
-
     iscat : np.array, shape (space.n_dims,)
        Boolean array indicating whether dimension `i` in the `space` is
        categorical.
@@ -1297,24 +1183,20 @@ def _map_categories(space, points, minimum):
 
 def _evenly_sample(dim, n_points):
     """Return `n_points` evenly spaced points from a Dimension.
-
     Parameters
     ----------
     dim : `Dimension`
         The Dimension to sample from.  Can be categorical; evenly-spaced
         category indices are chosen in order without replacement (result
         may be smaller than `n_points`).
-
     n_points : int
         The number of points to sample from `dim`.
-
     Returns
     -------
     xi : np.array
         The sampled points in the Dimension.  For Categorical
         dimensions, returns the index of the value in
         `dim.categories`.
-
     xi_transformed : np.array
         The transformed values of `xi`, for feeding to a model.
     """

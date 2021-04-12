@@ -1,3 +1,8 @@
+try:
+    from collections.abc import Iterable
+except ImportError:
+    from collections import Iterable
+
 import numbers
 import numpy as np
 import yaml
@@ -678,7 +683,18 @@ class Categorical(Dimension):
         # of type float, hence the required cast back to int.
         inv_transform = super(Categorical, self).inverse_transform(Xt)
         if isinstance(inv_transform, list):
-            inv_transform = np.array(inv_transform)
+            if not any(isinstance(x, Iterable) for x in inv_transform):
+                inv_transform = np.array(inv_transform)
+            else:
+                # in case we have any Iterable parameters, we want to
+                # stop numpy from coercing them into an np.array
+                inv_transform_array = np.ndarray(
+                    len(inv_transform), dtype=object
+                )
+
+                for i, item in enumerate(inv_transform):
+                    inv_transform_array[i] = item
+                inv_transform = inv_transform_array
         return inv_transform
 
     def rvs(self, n_samples=None, random_state=None):

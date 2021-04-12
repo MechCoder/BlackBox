@@ -1,7 +1,7 @@
 try:
-    from collections.abc import Sized
+    from collections.abc import Sized, Iterable
 except ImportError:
-    from collections import Sized
+    from collections import Sized, Iterable
 from collections import defaultdict
 from functools import partial
 
@@ -564,7 +564,16 @@ class BayesSearchCV(BaseSearchCV):
         params = optimizer.ask(n_points=n_points)
 
         # convert parameters to python native types
-        params = [[np.array(v).item() for v in p] for p in params]
+        # in case we have any Iterable parameters, we want to
+        # stop numpy from coercing them into an np.array
+        def try_convert_to_np(item):
+            if isinstance(item, Iterable):
+                return item
+            try:
+                return np.array(item).item()
+            except ValueError:
+                return item
+        params = [[try_convert_to_np(v) for v in p] for p in params]
 
         # make lists into dictionaries
         params_dict = [point_asdict(search_space, p) for p in params]

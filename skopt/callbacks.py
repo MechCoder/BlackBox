@@ -11,10 +11,12 @@ except ImportError:
     from collections import Callable
 
 from time import time
+import os
 
 import numpy as np
 
-from skopt.utils import dump
+from skopt.utils import dump, load
+
 
 def check_callback(callback):
     """
@@ -125,6 +127,7 @@ class TimerCallback(object):
     iter_time : list, shape (n_iter,)
         `iter_time[i-1]` gives the time taken to complete iteration `i`
     """
+
     def __init__(self):
         self._time = time()
         self.iter_time = []
@@ -146,6 +149,7 @@ class EarlyStopper(object):
 
     The optimization procedure will be stopped if the callback returns True.
     """
+
     def __call__(self, result):
         """
         Parameters
@@ -182,6 +186,7 @@ class DeltaXStopper(EarlyStopper):
     If the last two positions at which the objective has been evaluated
     are less than `delta` apart stop the optimization procedure.
     """
+
     def __init__(self, delta):
         super(EarlyStopper, self).__init__()
         self.delta = delta
@@ -201,6 +206,7 @@ class DeltaYStopper(EarlyStopper):
     Stop the optimizer if the absolute difference between the `n_best`
     objective values is less than `delta`.
     """
+
     def __init__(self, delta, n_best=5):
         super(EarlyStopper, self).__init__()
         self.delta = delta
@@ -230,7 +236,6 @@ class HollowIterationsStopper(EarlyStopper):
         self.threshold = abs(threshold)
 
     def _criterion(self, result):
-
         if len(result.func_vals) <= self.n_iterations:
             return False
 
@@ -253,6 +258,7 @@ class DeadlineStopper(EarlyStopper):
         fixed budget of time (seconds) that the optimization must
         finish within.
     """
+
     def __init__(self, total_time):
         super(DeadlineStopper, self).__init__()
         self._time = time()
@@ -287,7 +293,7 @@ class ThresholdStopper(EarlyStopper):
 class CheckpointSaver(object):
     """
     Save current state after each iteration with :class:`skopt.dump`.
-
+    Allows to re-use previously computed function evaluations.
 
     Examples
     --------
@@ -296,8 +302,12 @@ class CheckpointSaver(object):
     ...     return x[0]**2
     >>> checkpoint_callback = skopt.callbacks.CheckpointSaver("./result.pkl")
     >>> skopt.gp_minimize(obj_fun, [(-2, 2)], n_calls=10,
-    ...                   callback=[checkpoint_callback]) # doctest: +SKIP
-
+    ...                   callback=[checkpoint_callback])
+    >>> # when re-using stored results.
+    >>> checkpoint_callback = skopt.callbacks.CheckpointSaver("./result.pkl")
+    >>> skopt.gp_minimize(obj_fun, [(-2, 2)], n_calls=10,
+    ...                   callback=[checkpoint_callback]
+    ...                   **checkpoint_callback.load()) # doctest: +SKIP
     Parameters
     ----------
     checkpoint_path : string
@@ -305,6 +315,7 @@ class CheckpointSaver(object):
     dump_options : string
         options to pass on to `skopt.dump`, like `compress=9`
     """
+
     def __init__(self, checkpoint_path, **dump_options):
         self.checkpoint_path = checkpoint_path
         self.dump_options = dump_options
@@ -317,3 +328,17 @@ class CheckpointSaver(object):
             The optimization as a OptimizeResult object.
         """
         dump(res, self.checkpoint_path, **self.dump_options)
+
+    def load(self):
+        """
+        Loads from disk previously evaluated points.
+        Returns
+        -------
+        Dict with previous evaluations and their latest surrogate state.
+        """
+        if os.path.exists(self.checkpoint_path):
+            result = load(self.checkpoint_path)
+            return {'x0': result.x_iters, 'y0': result.func_vals,
+                    'base_estimator': result.models[
+                        -1] if result.models else None}
+        return {}

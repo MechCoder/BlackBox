@@ -5,3 +5,4 @@ matplotlib>=2.0.0
 pytest
 pyaml>=16.9
 joblib>=0.11
+filterpy>=1.4.4

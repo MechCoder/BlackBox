@@ -7,7 +7,6 @@ import inspect
 import numpy as np
 
 from scipy.optimize import fmin_l_bfgs_b
-
 from sklearn.base import clone
 from sklearn.base import is_regressor
 from joblib import Parallel, delayed
@@ -181,7 +180,8 @@ class Optimizer(object):
         self.acq_func = acq_func
         self.acq_func_kwargs = acq_func_kwargs
 
-        allowed_acq_funcs = ["gp_hedge", "EI", "LCB", "PI", "EIps", "PIps"]
+        allowed_acq_funcs = [
+            "gp_hedge", "EI", "LCB", "PI", "EIps", "PIps", "UEI"]
         if self.acq_func not in allowed_acq_funcs:
             raise ValueError("expected acq_func to be in %s, got %s" %
                              (",".join(allowed_acq_funcs), self.acq_func))
@@ -242,7 +242,7 @@ class Optimizer(object):
             else:
                 acq_optimizer = "sampling"
 
-        if acq_optimizer not in ["lbfgs", "sampling"]:
+        if acq_optimizer not in ["lbfgs", "sampling", "UOI"]:
             raise ValueError("Expected acq_optimizer to be 'lbfgs' or "
                              "'sampling', got {0}".format(acq_optimizer))
 
@@ -333,7 +333,8 @@ class Optimizer(object):
         return optimizer
 
     def ask(self, n_points=None, strategy="cl_min"):
-        """Query point or multiple points at which objective should be evaluated.
+        """
+        Query point or multiple points at which objective should be evaluated.
 
         n_points : int or None, default: None
             Number of points returned by the ask method.
@@ -400,13 +401,16 @@ class Optimizer(object):
 
             if strategy == "cl_min":
                 y_lie = np.min(opt.yi) if opt.yi else 0.0  # CL-min lie
-                t_lie = np.min(ti) if ti is not None else log(sys.float_info.max)
+                t_lie = np.min(ti) if ti is not None else log(
+                    sys.float_info.max)
             elif strategy == "cl_mean":
                 y_lie = np.mean(opt.yi) if opt.yi else 0.0  # CL-mean lie
-                t_lie = np.mean(ti) if ti is not None else log(sys.float_info.max)
+                t_lie = np.mean(ti) if ti is not None else log(
+                    sys.float_info.max)
             else:
                 y_lie = np.max(opt.yi) if opt.yi else 0.0  # CL-max lie
-                t_lie = np.max(ti) if ti is not None else log(sys.float_info.max)
+                t_lie = np.max(ti) if ti is not None else log(
+                    sys.float_info.max)
 
             # Lie to the optimizer.
             if "ps" in self.acq_func:
@@ -554,6 +558,7 @@ class Optimizer(object):
 
             self.next_xs_ = []
             for cand_acq_func in self.cand_acq_funcs_:
+                # optimal incumbent here
                 values = _gaussian_acquisition(
                     X=X, model=est, y_opt=np.min(self.yi),
                     acq_func=cand_acq_func,
@@ -562,6 +567,22 @@ class Optimizer(object):
                 # sampling points from the space
                 if self.acq_optimizer == "sampling":
                     next_x = X[np.argmin(values)]
+
+                elif self.acq_optimizer == "UOI":
+
+                    sigma_generator = self.acq_optimizer_kwargs[
+                        'UT_kwargs']['sigma_generator']
+                    transform_f = self.acq_optimizer_kwargs[
+                        'UT_kwargs']['transform_f']
+                    pts = [sigma_generator(xx) for xx in X]
+                    sigma_pred = est.predict(
+                        np.asarray(pts).reshape(-1, 2)
+                        ).reshape(X.shape[0], X.shape[1] * 2 + 1)
+                    uoi = np.asarray(
+                        [transform_f(
+                            np.expand_dims(pred, axis=1))[0]
+                            for pred in sigma_pred]).squeeze()
+                    next_x = X[np.argmin(uoi)]
 
                 # Use BFGS to find the mimimum of the acquisition function, the
                 # minimization starts from `n_restarts_optimizer` different

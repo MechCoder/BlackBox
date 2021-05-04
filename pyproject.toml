@@ -8,4 +8,5 @@ requires = [
     "scikit-learn>=0.19.1",
     "pyaml>=16.9",
     "joblib>=0.11",
+    "filterpy>=1.4.4",
 ]

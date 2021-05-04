@@ -46,9 +46,15 @@ def _gaussian_acquisition(X, model, y_opt=None, acq_func="LCB",
         else:
             acq_vals = func_and_grad
 
-    elif acq_func in ["EI", "PI", "EIps", "PIps"]:
+    elif acq_func in ["EI", "PI", "EIps", "PIps", "UEI"]:
         if acq_func in ["EI", "EIps"]:
             func_and_grad = gaussian_ei(X, model, y_opt, xi, return_grad)
+        elif acq_func in ["UEI"]:
+            # Unscented EI
+            sigma_generator = acq_func_kwargs['UT_kwargs']['sigma_generator']
+            transform_f = acq_func_kwargs['UT_kwargs']['transform_f']
+            func_and_grad = gaussian_unscented_ei(
+                X, model, sigma_generator, transform_f, y_opt, xi, return_grad)
         else:
             func_and_grad = gaussian_pi(X, model, y_opt, xi, return_grad)
 
@@ -319,3 +325,95 @@ def gaussian_ei(X, model, y_opt=0.0, xi=0.01, return_grad=False):
         return values, grad
 
     return values
+
+
+def gaussian_unscented_ei(X, model, sigma_generator, transform_f,
+                          y_opt=0.0, xi=0.01, return_grad=False):
+    """
+    Use the unscented expected improvement to calculate the acquisition values.
+
+    The conditional probability `P(y=f(x) | x)` form a gaussian with a certain
+    mean and standard deviation approximated by the model.
+
+    The EI condition is derived by computing ``E[u(f(x))]``
+    where ``u(f(x)) = 0``, if ``f(x) > y_opt`` and ``u(f(x)) = y_opt - f(x)``,
+    if``f(x) < y_opt``.
+
+    This approach uses the unscented transform to approximate the output of
+    EI and finding minima faster. For reference:
+    J. Nogueira, R. Martinez-Cantin, A. Bernardino and L. Jamone,
+    "Unscented Bayesian optimization for safe robot grasping,"
+    2016 IEEE/RSJ International Conference on Intelligent Robots and Systems,
+    Daejeon, 2016, pp. 1967-1972, doi: 10.1109/IROS.2016.7759310.
+
+    This solves one of the issues of the PI condition by giving a reward
+    proportional to the amount of improvement got.
+
+    Note that the value returned by this function should be maximized to
+    obtain the ``X`` with maximum improvement.
+
+    Parameters
+    ----------
+    X : array-like, shape=(n_samples, n_features)
+        Values where the acquisition function should be computed.
+
+    model : sklearn estimator that implements predict with ``return_std``
+        The fit estimator that approximates the function through the
+        method ``predict``.
+        It should have a ``return_std`` parameter that returns the standard
+        deviation.
+
+    sigma_generator :  function. takes as an input the center point of the
+        sigma points to compute the unscented transform.
+
+    transform_f : function. Takes as an input the value computed on the sigma
+        points and returns an estimation of the output mean and covariance.
+
+    y_opt : float, default 0
+        Previous minimum value which we would like to improve upon.
+
+    xi : float, default=0.01
+        Controls how much improvement one wants over the previous best
+        values. Useful only when ``method`` is set to "EI"
+
+    return_grad : boolean, optional
+        Whether or not to return the grad. Implemented only for the case where
+        ``X`` is a single sample.
+
+    Returns
+    -------
+    values : array-like, shape=(X.shape[0],)
+        Acquisition function values computed at X.
+    """
+    n_dim = X.shape[1]
+    n_sigma = n_dim * 2 + 1  # the number of sigmas is 2*dim + 1
+
+    # Compute sigma points
+    pts = [sigma_generator(xx) for xx in X]
+    grads = []
+    eis = []
+    for i in range(n_sigma):
+        # estimate EI
+        res = gaussian_ei(
+            np.asarray(pts)[:, i, :],
+            model, y_opt, xi, return_grad)
+        if return_grad:
+            # in case the gradient is requested. (compatibility lbfgs)
+            grads.append(res[1])
+            eis.append(res[0])
+        else:
+            eis.append(res)
+    # Transform the output of EI
+    uei = np.asarray(
+            [transform_f(
+                np.expand_dims(ei, axis=0).T)[0]
+                for ei in np.asarray(eis).T])
+    if return_grad:
+        # Transform the gradients
+        ugrad = np.asarray(
+            [transform_f(
+                np.expand_dims(grad, axis=0).T)[0]
+                for grad in np.asarray(grads).T]).T
+        return uei.squeeze(), ugrad
+    else:
+        return uei.squeeze()

@@ -93,9 +93,9 @@ class Sobol(InitialPointGenerator):
             raise ValueError("The balance properties of Sobol' points require"
                              " skipping a power of 2.")
         if skip != 0:
-            warnings.warn(f"{skip} points have been skipped: "
-                          f"{skip} points can be generated before the "
-                          f"sequence repeats.")
+            warnings.warn("(%s) points have been skipped: "
+                          "(%s) points can be generated before the "
+                          "sequence repeats." % (skip, skip))
         self.skip = skip
 
         self.num_generated = 0
@@ -165,11 +165,12 @@ class Sobol(InitialPointGenerator):
 
         #  Check parameters.
         if dim_num < 1 or self.dim_max < dim_num:
-            raise ValueError(f'I4_SOBOL - Fatal error!\n'
-                             f'  The spatial dimension DIM_NUM should '
-                             f'satisfy:\n'
-                             f'  1 <= DIM_NUM <= {self.dim_max}\n'
-                             f'  But this input value is DIM_NUM = {dim_num}')
+            raise ValueError('I4_SOBOL - Fatal error!\n'
+                             '  The spatial dimension DIM_NUM should '
+                             'satisfy:\n'
+                             '  1 <= DIM_NUM <= (%d)\n'
+                             '  But this input value is'
+                             'DIM_NUM = (%d)' % (self.dim_max, dim_num))
 
         #  Initialize the remaining rows of V.
         for i in range(2, dim_num + 1):
@@ -249,10 +250,10 @@ class Sobol(InitialPointGenerator):
                           .format(self.num_generated, n_samples,
                                   total_n_samples))
         if self.skip != 0 and total_n_samples > self.skip:
-            raise ValueError(f"{self.skip} points have been skipped: "
-                             f"generating "
-                             f"{n_samples} more points would cause the "
-                             f"sequence to repeat.")
+            raise ValueError("(%s) points have been skipped: "
+                             "generating "
+                             "(%i) more points would cause the "
+                             "sequence to repeat." % (self.skip, n_samples))
 
         rng = check_random_state(random_state)
         space = Space(dimensions)
@@ -344,10 +345,10 @@ class Sobol(InitialPointGenerator):
 
         #  Check that the user is not calling too many times!
         if self.maxcol < pos_lo0:
-            raise ValueError(f'I4_SOBOL - Fatal error!\n'
-                             f' Too many calls!\n'
-                             f' MAXCOL = {self.maxcol}\n'
-                             f' L =      {pos_lo0}\n')
+            raise ValueError('I4_SOBOL - Fatal error!\n'
+                             ' Too many calls!\n'
+                             ' MAXCOL = (%s)\n'
+                             ' L =      (%s)\n' % (self.maxcol, pos_lo0))
 
         #  Calculate the new components of QUASI.
         quasi = np.zeros(dim_num)

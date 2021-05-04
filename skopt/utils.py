@@ -196,7 +196,8 @@ def check_x_in_space(x, space):
                              " the space (%s)."
                              % (x, space.bounds))
         if len(x) != len(space.dimensions):
-            raise ValueError("Dimensions of point (%s) and space (%s) do not match"
+            raise ValueError("Dimensions of point (%s)"
+                             "and space (%s) do not match"
                              % (x, space.bounds))
 
 
@@ -717,7 +718,8 @@ def use_named_args(dimensions):
     >>> print("Best fitness: " + str(result.fun))
     Best fitness: 0.1948080835239698
     >>> print("Best parameters: {}".format(result.x))
-    Best parameters: [0.44134853091052617, 0.06570954323368307, 0.17586123323419825]
+    Best parameters:
+        [0.44134853091052617, 0.06570954323368307, 0.17586123323419825]
 
     Parameters
     ----------

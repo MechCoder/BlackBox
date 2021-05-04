@@ -44,9 +44,9 @@ setup(name='scikit-optimize',
                 'skopt.learning.gaussian_process', 'skopt.sampler'],
       install_requires=['joblib>=0.11', 'pyaml>=16.9', 'numpy>=1.13.3',
                         'scipy>=0.19.1',
-                        'scikit-learn>=0.20.0'],
+                        'scikit-learn>=0.20.0', 'filterpy==1.4.5'],
       extras_require={
-        'plots':  ["matplotlib>=2.0.0"]
+        'plots':  ["matplotlib>=2.0.0"],
         }
 
       )

@@ -98,13 +98,20 @@ res.fun
 x0 = res.x_iters
 y0 = res.func_vals
 
-gp_minimize(obj_fun,            # the function to minimize
-            [(-20.0, 20.0)],    # the bounds on each dimension of x
-            x0=x0,              # already examined values for x
-            y0=y0,              # observed values for x0
-            acq_func="LCB",     # the acquisition function (optional)
-            n_calls=10,         # number of evaluations of f including at x0
-            n_random_starts=3,  # the number of random initialization points
+# To ensure that the base estimator is loaded properly and that the next 
+# parameters are new ones:
+base_estimator = res.specs['args']['base_estimator']
+random_state = res.random_state
+
+gp_minimize(obj_fun,                        # the function to minimize
+            [(-20.0, 20.0)],                # the bounds on each dimension of x
+            base_estimator=base_estimator,  # warm-started base-estimator from checkpoint
+            x0=x0,                          # already examined values for x
+            y0=y0,                          # observed values for x0
+            acq_func="LCB",                 # the acquisition function (optional)
+            n_calls=10,                     # number of evaluations of f including at x0
+            n_random_starts=3,              # the number of random initialization points
+            random_state=random_state       # warm-started random state from checkpoint
             callback=[checkpoint_saver],
             random_state=777)
 

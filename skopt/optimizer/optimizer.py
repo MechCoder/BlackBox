@@ -596,7 +596,8 @@ class Optimizer(object):
             if self.acq_func == "gp_hedge":
                 logits = np.array(self.gains_)
                 logits -= np.max(logits)
-                exp_logits = np.exp(self.eta * logits)
+                with np.errstate(under='ignore'):
+                    exp_logits = np.exp(self.eta * logits)
                 probs = exp_logits / np.sum(exp_logits)
                 next_x = self.next_xs_[np.argmax(self.rng.multinomial(1,
                                                                       probs))]

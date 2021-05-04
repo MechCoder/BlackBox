@@ -16,7 +16,8 @@ def gp_minimize(func, dimensions, base_estimator=None,
                 acq_func="gp_hedge", acq_optimizer="auto", x0=None, y0=None,
                 random_state=None, verbose=False, callback=None,
                 n_points=10000, n_restarts_optimizer=5, xi=0.01, kappa=1.96,
-                noise="gaussian", n_jobs=1, model_queue_size=None):
+                noise="gaussian", n_jobs=1, model_queue_size=None,
+                space_constraint=None):
     """Bayesian optimization using Gaussian Processes.
 
     If every function evaluation is expensive, for instance
@@ -223,6 +224,12 @@ def gp_minimize(func, dimensions, base_estimator=None,
         Keeps list of models only as long as the argument given. In the
         case of None, the list has no capped length.
 
+    space_constraint : callable or None, default: None
+        Constraint function. Should take a single list of parameters
+        (i.e. a point in space) and return True if the point satisfies
+        the constraints.
+        If None, the space is not conditionally constrained.
+
     Returns
     -------
     res : `OptimizeResult`, scipy object
@@ -265,4 +272,5 @@ def gp_minimize(func, dimensions, base_estimator=None,
         initial_point_generator=initial_point_generator,
         n_restarts_optimizer=n_restarts_optimizer,
         x0=x0, y0=y0, random_state=rng, verbose=verbose,
+        space_constraint=space_constraint,
         callback=callback, n_jobs=n_jobs, model_queue_size=model_queue_size)

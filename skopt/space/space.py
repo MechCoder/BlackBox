@@ -766,9 +766,20 @@ class Space(object):
         .. note::
             The upper and lower bounds are inclusive for `Integer`
             dimensions.
+
+    constraint : callable or None, default: None
+        Constraint function. Should take a single list of parameters
+        (i.e. a point in space) and return True if the point satisfies
+        the constraints.
+        If None, the space is not conditionally constrained.
+        ...
     """
-    def __init__(self, dimensions):
+    def __init__(self, dimensions, constraint=None):
         self.dimensions = [check_dimension(dim) for dim in dimensions]
+        if constraint is None and isinstance(dimensions, Space):
+            constraint = dimensions.constraint
+        assert constraint is None or callable(constraint)
+        self.constraint = constraint
 
     def __eq__(self, other):
         return all([a == b for a, b in zip(self.dimensions, other.dimensions)])
@@ -893,14 +904,30 @@ class Space(object):
         """
         rng = check_random_state(random_state)
 
-        # Draw
-        columns = []
+        points = []
+        for _ in range(10000):
+            # Draw
+            columns = []
+            for dim in self.dimensions:
+                columns.append(dim.rvs(n_samples=n_samples, random_state=rng))
 
-        for dim in self.dimensions:
-            columns.append(dim.rvs(n_samples=n_samples, random_state=rng))
+            # Transpose
+            rows = _transpose_list_array(columns)
 
-        # Transpose
-        return _transpose_list_array(columns)
+            # Filter
+            if self.constraint is not None:
+                rows = [row for row in rows if self.constraint(row)]
+
+            # If we have enough valid samples
+            points.extend(rows)
+            if len(points) >= n_samples:
+                break
+        else:
+            raise RuntimeError(
+                'Could not find enough valid samples in constrained '
+                'space. Please check that the constraint allows for '
+                'valid samples to be drawn.')
+        return points[:n_samples]
 
     def set_transformer(self, transform):
         """Sets the transformer of all dimension objects to `transform`
@@ -1034,6 +1061,8 @@ class Space(object):
         for component, dim in zip(point, self.dimensions):
             if component not in dim:
                 return False
+        if self.constraint is not None:
+            return bool(self.constraint(point))
         return True
 
     def __getitem__(self, dimension_names):

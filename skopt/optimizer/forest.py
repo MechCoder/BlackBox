@@ -12,7 +12,7 @@ def forest_minimize(func, dimensions, base_estimator="ET", n_calls=100,
                     initial_point_generator="random",
                     x0=None, y0=None, random_state=None, verbose=False,
                     callback=None, n_points=10000, xi=0.01, kappa=1.96,
-                    n_jobs=1, model_queue_size=None):
+                    n_jobs=1, model_queue_size=None, space_constraint=None):
     """Sequential optimisation using decision trees.
 
     A tree based regression model is used to model the expensive to evaluate
@@ -162,6 +162,12 @@ def forest_minimize(func, dimensions, base_estimator="ET", n_calls=100,
         Keeps list of models only as long as the argument given. In the
         case of None, the list has no capped length.
 
+    space_constraint : callable or None, default: None
+        Constraint function. Should take a single list of parameters
+        (i.e. a point in space) and return True if the point satisfies
+        the constraints.
+        If None, the space is not conditionally constrained.
+
     Returns
     -------
     res : `OptimizeResult`, scipy object
@@ -193,4 +199,5 @@ def forest_minimize(func, dimensions, base_estimator="ET", n_calls=100,
                          acq_func=acq_func,
                          xi=xi, kappa=kappa, verbose=verbose,
                          callback=callback, acq_optimizer="sampling",
+                         space_constraint=space_constraint,
                          model_queue_size=model_queue_size)

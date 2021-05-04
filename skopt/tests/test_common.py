@@ -436,3 +436,27 @@ def test_per_second_api(acq_func, minimizer):
                     acq_func=acq_func, n_calls=n_calls, n_initial_points=2,
                     random_state=1)
     assert len(res.log_time) == n_calls
+
+
+@pytest.mark.slow_test
+@pytest.mark.parametrize("minimizer", MINIMIZERS)
+def test_minimizer_space_constraint(minimizer):
+    n_calls = 4
+    n_initial_points = 2
+
+    def constraint(params):
+        return (0 < params[0] < 5) and (5 < params[1] < 10)
+
+    space = Space([(-5.0, 10.0), (0.0, 15.0)])
+    result = minimizer(branin, space, n_calls=n_calls,
+                       n_initial_points=n_initial_points,
+                       space_constraint=constraint, random_state=1)
+
+    assert all([constraint(params) for params in result.x_iters])
+
+    dimensions = [(-5.0, 10.0), (0.0, 15.0)]
+    result = minimizer(branin, dimensions, n_calls=n_calls,
+                       n_initial_points=n_initial_points,
+                       space_constraint=constraint, random_state=1)
+
+    assert all([constraint(params) for params in result.x_iters])

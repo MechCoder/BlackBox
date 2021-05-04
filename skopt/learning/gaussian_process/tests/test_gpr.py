@@ -62,6 +62,27 @@ def test_noise_equals_gaussian():
 
 
 @pytest.mark.fast_test
+def test_white_kernel_as_noise():
+    # first .fit()
+    gpr1 = GaussianProcessRegressor(rbf + wk).fit(X, y)
+    gpr2 = GaussianProcessRegressor(rbf, noise="gaussian").fit(X, y)
+    mean1, std1 = gpr1.predict(X, return_std=True)
+    mean2, std2 = gpr2.predict(X, return_std=True)
+    assert_almost_equal(gpr1.kernel_.k2.noise_level, gpr2.noise_, 4)
+    assert not np.any(std1 == std2)
+    assert _param_for_white_kernel_in_Sum(gpr1.kernel_)[1] == 'k2'
+    assert _param_for_white_kernel_in_Sum(gpr2.kernel_)[1] == 'k2'
+    # second .fit()
+    gpr1 = gpr1.fit(X, y)
+    gpr2 = gpr2.fit(X, y)
+    mean1, std1 = gpr1.predict(X, return_std=True)
+    mean2, std2 = gpr2.predict(X, return_std=True)
+    assert_almost_equal(gpr1.kernel_.k2.noise_level, gpr2.noise_, 4)
+    assert _param_for_white_kernel_in_Sum(gpr1.kernel_)[1] == 'k2'
+    assert _param_for_white_kernel_in_Sum(gpr2.kernel_)[1] == 'k2'
+    assert not np.any(std1 == std2)
+
+@pytest.mark.fast_test
 def test_mean_gradient():
     length_scale = np.arange(1, 6)
     X = rng.randn(10, 5)

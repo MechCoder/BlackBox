@@ -186,12 +186,13 @@ class GaussianProcessRegressor(sk_GaussianProcessRegressor):
         if self.kernel is None:
             self.kernel = ConstantKernel(1.0, constant_value_bounds="fixed") \
                           * RBF(1.0, length_scale_bounds="fixed")
-        if self.noise == "gaussian":
-            self.kernel = self.kernel + WhiteKernel()
-        elif self.noise:
-            self.kernel = self.kernel + WhiteKernel(
-                noise_level=self.noise, noise_level_bounds="fixed"
-            )
+        if self.noise and not _param_for_white_kernel_in_Sum(self.kernel)[0]:
+            if self.noise == "gaussian":
+                self.kernel = self.kernel + WhiteKernel()
+            else:
+                self.kernel = self.kernel + WhiteKernel(
+                    noise_level=self.noise, noise_level_bounds="fixed"
+                )
         super(GaussianProcessRegressor, self).fit(X, y)
 
         self.noise_ = None

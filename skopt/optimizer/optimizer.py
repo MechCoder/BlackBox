@@ -2,8 +2,6 @@ import sys
 import warnings
 from math import log
 from numbers import Number
-import copy
-import inspect
 import numpy as np
 
 from scipy.optimize import fmin_l_bfgs_b
@@ -171,7 +169,9 @@ class Optimizer(object):
                  model_queue_size=None,
                  acq_func_kwargs=None,
                  acq_optimizer_kwargs=None):
-        self.specs = {"args": copy.copy(inspect.currentframe().f_locals),
+        args = locals().copy()
+        del args['self']
+        self.specs = {"args": args,
                       "function": "Optimizer"}
         self.rng = check_random_state(random_state)
 

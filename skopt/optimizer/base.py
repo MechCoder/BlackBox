@@ -4,8 +4,6 @@ Abstraction for optimizers.
 It is sufficient that one re-implements the base estimator.
 """
 
-import copy
-import inspect
 import warnings
 import numbers
 try:
@@ -209,8 +207,8 @@ def base_minimize(func, dimensions, base_estimator,
         For more details related to the OptimizeResult object, refer
         http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.OptimizeResult.html
     """
-    specs = {"args": copy.copy(inspect.currentframe().f_locals),
-             "function": inspect.currentframe().f_code.co_name}
+    specs = {"args": locals(),
+             "function": "base_minimize"}
 
     acq_optimizer_kwargs = {
         "n_points": n_points, "n_restarts_optimizer": n_restarts_optimizer,

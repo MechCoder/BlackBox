@@ -1,10 +1,5 @@
 import warnings
 
-try:
-    from collections.abc import Sized
-except ImportError:
-    from collections import Sized
-
 import numpy as np
 from scipy.stats import rankdata
 
@@ -12,16 +7,21 @@ from sklearn.model_selection._search import BaseSearchCV
 from sklearn.utils import check_random_state
 
 from sklearn.utils.validation import check_is_fitted
-try:
-    from sklearn.metrics import check_scoring
-except ImportError:
-    from sklearn.metrics.scorer import check_scoring
 
 from . import Optimizer
 from .utils import point_asdict, dimensions_aslist, eval_callbacks
 from .space import check_dimension
 from .callbacks import check_callback
 
+
+def _get_score_names(results, *, kind="test"):
+    key_parts = [key.rsplit("_", 1) for key in results.keys()]
+    prefix = "mean_%s" % kind
+    return {
+        parts[1]
+        for parts in key_parts
+        if len(parts) == 2 and parts[0] == prefix
+    }
 
 class BayesSearchCV(BaseSearchCV):
     """Bayesian optimization over hyper parameters.
@@ -78,11 +78,24 @@ class BayesSearchCV(BaseSearchCV):
         ``{'base_estimator': 'RF'}`` would use a Random Forest surrogate
         instead of the default Gaussian Process.
 
-    scoring : string, callable or None, default=None
-        A string (see model evaluation documentation) or
-        a scorer callable object / function with signature
-        ``scorer(estimator, X, y)``.
-        If ``None``, the ``score`` method of the estimator is used.
+    scoring : str, callable, list, tuple or dict, default=None
+        Strategy to evaluate the performance of the cross-validated model on
+        the test set. If ``None``, the ``score`` method of the estimator is
+        used.
+
+        If `scoring` represents a single score, one can use:
+
+        - a single string (see :ref:`scoring_parameter`);
+        - a callable (see :ref:`scoring`) that returns a single value.
+
+        If `scoring` represents multiple scores, one can use:
+
+        - a list or tuple of unique strings;
+        - a callable returning a dictionary where the keys are the metric
+          names and the values are the metric scores;
+        - a dictionary with metric names as keys and callables a values.
+
+        Callables must have the signature ``scorer(estimator, X, y=None)``
 
     fit_params : dict, optional
         Parameters to pass to the fit method.
@@ -124,10 +137,14 @@ class BayesSearchCV(BaseSearchCV):
         either binary or multiclass, :class:`StratifiedKFold` is used. In all
         other cases, :class:`KFold` is used.
 
-    refit : boolean, default=True
+    refit : bool, str, default=True
         Refit the best estimator with the entire dataset.
         If "False", it is impossible to make predictions using
         this RandomizedSearchCV instance after fitting.
+
+        For multiple metric evaluation, this needs to be a `str` denoting the
+        scorer that would be used to direct the optimization process, and find
+        the best parameters for refitting the estimator at the end.
 
     verbose : integer
         Controls the verbosity: the higher, the more messages.
@@ -258,13 +275,21 @@ class BayesSearchCV(BaseSearchCV):
     n_splits_ : int
         The number of cross-validation splits (folds/iterations).
 
+    refit_time_ : float
+        Seconds used for refitting the best model on the whole dataset.
+
+        This is present only if ``refit`` is not False.
+
+    multimetric_ : bool
+        Whether or not the scorers compute several metrics.
+
     Notes
     -----
     The parameters selected are those that maximize the score of the held-out
     data, according to the scoring parameter.
 
     If `n_jobs` was set to a value higher than one, the data is copied for each
-    parameter setting(and not `n_jobs` times). This is done for efficiency
+    parameter setting (and not `n_jobs` times). This is done for efficiency
     reasons if individual jobs take very little time, but may raise errors if
     the dataset is large and not enough memory is available.  A workaround in
     this case is to set `pre_dispatch`. Then, the memory is copied only
@@ -412,9 +437,31 @@ class BayesSearchCV(BaseSearchCV):
         params_dict = [point_asdict(search_space, p) for p in params]
 
         all_results = evaluate_candidates(params_dict)
+
+        # if self.scoring is a callable, we have to wait until here
+        # to choose between single metric or multimetric
+        if self._target_score is None:
+            score_names = _get_score_names(all_results)
+            if len(score_names) > 1:
+                # multimetric
+                self._check_refit_for_multimetric(score_names)
+                self._target_score = self.refit
+            elif len(score_names) == 1:
+                # single metric, or a callable self.scoring returned a dict
+                # with a single value
+                # In both case, we just use the score that is available
+                self._target_score = score_names.pop()
+            else:
+                # failsafe, shouldn't happen
+                raise ValueError(
+                    "No score was detected after fitting. This is probably "
+                    "due to a callable 'scoring' returning an empty dict."
+                )
+
         # Feed the point and objective value back into optimizer
         # Optimizer minimizes objective, hence provide negative score
-        local_results = all_results["mean_test_score"][-len(params):]
+        score = "mean_test_%s" % self._target_score
+        local_results = all_results[score][-len(params):]
         return optimizer.tell(params, [-score for score in local_results])
 
     @property
@@ -469,14 +516,33 @@ class BayesSearchCV(BaseSearchCV):
         else:
             self.optimizer_kwargs_ = dict(self.optimizer_kwargs)
 
+        if callable(self.refit):
+            raise ValueError("BayesSearchCV doesn't support callable refit")
+
+        # Adapted from BaseSearchCV fit() method
+        if callable(self.scoring):
+            # will be determined later
+            self._target_score = None
+        elif self.scoring is None or isinstance(self.scoring, str):
+            self._target_score = "score"
+        else:
+            # proper checking will be performed in BaseSearchCV.fit()
+            self._target_score = self.refit
+
+
         super().fit(X=X, y=y, groups=groups, **fit_params)
 
         # BaseSearchCV never ranked train scores,
         # but apparently we used to ship this (back-compat)
         if self.return_train_score:
-            self.cv_results_["rank_train_score"] = \
-                rankdata(-np.array(self.cv_results_["mean_train_score"]),
-                         method='min').astype(int)
+            for score in _get_score_names(self.cv_results_, kind="train"):
+                self.cv_results_["rank_train_%s" % score] = (
+                    rankdata(
+                        -np.array(self.cv_results_["mean_train_%s" % score]),
+                        method='min'
+                    )
+                    .astype(int)
+                )
         return self
 
     def _run_search(self, evaluate_candidates):
@@ -524,3 +590,20 @@ class BayesSearchCV(BaseSearchCV):
                 if eval_callbacks(callbacks, optim_result):
                     break
             self._optim_results.append(optim_result)
+
+    def _check_refit_for_multimetric(self, scores):
+        """Check `refit` is compatible with `scores` and valid"""
+        # override to exclude False and callables
+        multimetric_refit_msg = (
+            "For multi-metric scoring, the parameter refit must be set to a "
+            "scorer key used to guide the bayesian optimization process "
+            "and refit an estimator with the best parameter settings in the "
+            "whole data and make the best_* attributes available for that "
+            f" metric. {self.refit!r} was passed."
+            )
+
+        valid_refit_dict = (isinstance(self.refit, str) and
+                            self.refit in scores)
+
+        if (not valid_refit_dict):
+            raise ValueError(multimetric_refit_msg)
